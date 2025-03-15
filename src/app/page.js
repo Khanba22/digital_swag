@@ -6,10 +6,10 @@ import html2canvas from "html2canvas";
 export default function DigitalSwag() {
   const canvasRef = useRef(null);
   const [canvas, setCanvas] = useState(null);
-  const [participantName, setParticipantName] = useState("Astronaut X");
+  const [participantName, setParticipantName] = useState("Your Name");
+  const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1920 });
   const imgRef = useRef(null);
-  const bgRef = useRef(null);
 
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -28,75 +28,125 @@ export default function DigitalSwag() {
     if (!canvasRef.current) return;
 
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      backgroundColor: "#ffffff",
       width: canvasSize.width,
       height: canvasSize.height,
     });
     setCanvas(fabricCanvas);
-
-    // Add neon-glow name text
-    const text = new fabric.Text(participantName, {
-      left: canvasSize.width / 2,
-      top: canvasSize.height * 0.75,
-      fontSize: canvasSize.width * 0.07,
-      fill: "#00FFFF",
-      fontFamily: "Orbitron",
-      textAlign: "center",
-      originX: "center",
-      shadow: "0 0 15px #00FFFF",
-    });
-    fabricCanvas.add(text);
-
     return () => fabricCanvas.dispose();
   }, [canvasSize]);
 
   useEffect(() => {
     if (!canvas) return;
     const image = new Image();
-    image.src = "data/template.jpg";
+    image.src = "data/sardard3.png";
     image.onload = () => {
       const fabricImage = new fabric.FabricImage(image);
       fabricImage.scaleToWidth(canvasSize.width);
       fabricImage.scaleToHeight(canvasSize.height);
-      canvas.backgroundImage = fabricImage;
+      fabricImage.set({
+        selectable: false,
+        evented: false,
+      });
+      fabricImage.setControlsVisibility({
+        mt: false,
+        mb: false,
+        ml: false,
+        mr: false,
+        bl: false,
+        br: false,
+        tl: false,
+        tr: false,
+      });
+      canvas.add(fabricImage);
+      setImageLoaded(true);
       canvas.renderAll();
     };
-  }, [canvas, canvasSize.width, canvasSize.height]);
+  }, [canvas]);
+
+  useEffect(() => {
+    if(!canvas) return
+    if(!imageLoaded) return
+    const leftPercent = 14.5;
+    const topPercent = 63;
+    const fontPercentage = 65 / 1000;
+    const canvasLeft = canvasSize.width * (leftPercent / 100);
+    const canvasTop = canvasSize.height * (topPercent / 100);
+
+    // Add neon-glow name text
+    const text = new fabric.Text(participantName, {
+      left: canvasLeft,
+      top: canvasTop,
+      fontSize: canvasSize.width * fontPercentage,
+      fill: "#FFFFFF",
+      fontFamily: "Segoe UI",
+      textAlign: "center",
+      fontWeight: "bold",
+    });
+    canvas.add(text);
+    canvas.bringObjectToFront(text);
+    canvas.renderAll();
+  },[canvas,imageLoaded]);
 
   useEffect(() => {
     if (canvas) {
       const textObj = canvas.getObjects().find((obj) => obj.type === "text");
       if (textObj) {
         textObj.set({ text: participantName });
+        canvas.bringObjectToFront(textObj);
         canvas.renderAll();
       }
     }
   }, [canvas, participantName]);
 
-  // Handle Image Upload
+  // Handle Image Upload - Modified for centered square image
   const handleImageUpload = (e) => {
     if (e.target.files && canvas) {
       const file = e.target.files[0];
       const reader = new FileReader();
+
       reader.onload = (event) => {
         const img = new Image();
         img.src = event.target?.result;
+
         img.onload = () => {
+          // Remove existing image if any
+          if (imgRef.current) {
+            canvas.remove(imgRef.current);
+          }
+
           const fabricImg = new fabric.FabricImage(img);
-          const scaleX = canvas.width / img.width;
-          const scaleY = canvas.height / img.height;
+
+          const imagePercentage = 700 / 1000;
+          const canvasLeft = canvasSize.width * (50 / 100);
+          const canvasTop = canvasSize.height * (45 / 100);
+
+          // Calculate image dimensions
+
+          const scale = (canvasSize.width * imagePercentage) / img.width;
+          const centerX = canvasLeft;
+          const centerY = canvasTop;
+
+          // Set image properties
           fabricImg.set({
-            scaleX: scaleX,
-            scaleY: scaleY,
+            left: centerX,
+            top: centerY,
+            originX: "center",
+            originY: "center",
+            scaleX: scale,
+            scaleY: scale,
           });
+          // Store reference and add to canvas
           imgRef.current = fabricImg;
           canvas.backgroundImage = fabricImg;
           canvas.renderAll();
         };
       };
+
       reader.readAsDataURL(file);
     }
   };
- 
+
   // Download as PNG
   const downloadImage = () => {
     html2canvas(canvasRef.current).then((canvasImg) => {

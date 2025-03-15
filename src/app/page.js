@@ -10,17 +10,6 @@ export default function DigitalSwag() {
   const [imageLoaded, setImageLoaded] = useState(false)
   const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1920 })
   const imgRef = useRef(null)
-  const [zoom, setZoom] = useState(1)
-  const [panning, setPanning] = useState(false)
-  const [lastPosX, setLastPosX] = useState(0)
-  const [lastPosY, setLastPosY] = useState(0)
-  const [imagePosition, setImagePosition] = useState({
-    leftPercent: 50, // center by default (percentage of canvas width)
-    topPercent: 41.3, // percentage of canvas height
-    scaleX: 1,
-    scaleY: 1,
-  })
-  const [hasUploadedImage, setHasUploadedImage] = useState(false)
 
   useEffect(() => {
     const updateCanvasSize = () => {
@@ -29,10 +18,7 @@ export default function DigitalSwag() {
       const newWidth = screenHeight * aspectRatio
       setCanvasSize({ width: newWidth, height: screenHeight })
     }
-
     updateCanvasSize()
-    window.addEventListener("resize", updateCanvasSize)
-    return () => window.removeEventListener("resize", updateCanvasSize)
   }, [])
 
   useEffect(() => {
@@ -44,30 +30,9 @@ export default function DigitalSwag() {
       height: canvasSize.height,
     })
 
-    // Add event listeners for panning and zooming
-    fabricCanvas.on("mouse:wheel", (opt) => {
-      handleMouseWheel(opt.e)
-    })
-
-    fabricCanvas.on("mouse:down", (opt) => {
-      handleMouseDown(opt.e)
-    })
-
-    fabricCanvas.on("mouse:move", (opt) => {
-      handleMouseMove(opt.e)
-    })
-
-    fabricCanvas.on("mouse:up", () => {
-      handleMouseUp()
-    })
-
     setCanvas(fabricCanvas)
 
     return () => {
-      fabricCanvas.off("mouse:wheel")
-      fabricCanvas.off("mouse:down")
-      fabricCanvas.off("mouse:move")
-      fabricCanvas.off("mouse:up")
       fabricCanvas.dispose()
     }
   }, [canvasSize])
@@ -83,22 +48,12 @@ export default function DigitalSwag() {
       fabricImage.set({
         selectable: false,
         evented: false,
-        opacity: 1,
-      })
-      fabricImage.setControlsVisibility({
-        mt: false,
-        mb: false,
-        ml: false,
-        mr: false,
-        bl: false,
-        br: false,
-        tl: false,
-        tr: false,
       })
       canvas.add(fabricImage)
       setImageLoaded(true)
       canvas.renderAll()
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas])
 
   useEffect(() => {
@@ -119,10 +74,13 @@ export default function DigitalSwag() {
       fontFamily: "Segoe UI",
       textAlign: "center",
       fontWeight: "bold",
+      selectable: false,
+      evented: false,
     })
     canvas.add(text)
     canvas.bringObjectToFront(text)
     canvas.renderAll()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [canvas, imageLoaded])
 
   useEffect(() => {
@@ -188,16 +146,6 @@ export default function DigitalSwag() {
           imgRef.current = fabricImg
           canvas.backgroundImage = fabricImg
           canvas.renderAll()
-
-          // Update image position state with percentages
-          setImagePosition({
-            leftPercent: leftPercent,
-            topPercent: topPercent,
-            scaleX: scale,
-            scaleY: scale,
-          })
-
-          setHasUploadedImage(true)
         }
       }
 
@@ -205,106 +153,25 @@ export default function DigitalSwag() {
     }
   }
 
-  // Update image position and scale
-  const updateImagePosition = () => {
-    if (!canvas || !canvas.backgroundImage) return
-
-    const img = canvas.backgroundImage
-    if (img) {
-      // Convert percentage values to actual pixel positions
-      const leftPixels = canvasSize.width * (imagePosition.leftPercent / 100)
-      const topPixels = canvasSize.height * (imagePosition.topPercent / 100)
-
-      img.set({
-        left: leftPixels,
-        top: topPixels,
-        scaleX: imagePosition.scaleX,
-        scaleY: imagePosition.scaleY,
-      })
-      canvas.renderAll()
-    }
-  }
-
-  // Handle input changes for percentages
-  const handlePositionChange = (e, property) => {
-    const value = Number.parseFloat(e.target.value)
-    setImagePosition((prev) => ({
-      ...prev,
-      [property]: value,
-    }))
-  }
-
-  // Apply position changes when inputs change or canvas size changes
-  useEffect(() => {
-    updateImagePosition()
-  }, [imagePosition, canvasSize])
 
   // Download as PNG
   const downloadImage = () => {
     html2canvas(canvasRef.current).then((canvasImg) => {
       const link = document.createElement("a")
-      link.download = "digital_swag.png"
+      const name = participantName || "digital_swag"
+      link.download = `${name}.png`
       link.href = canvasImg.toDataURL("image/png")
       link.click()
     })
   }
 
-  // Handle mouse wheel for zooming
-  const handleMouseWheel = (e) => {
-    if (!canvas) return
 
-    const delta = e.deltaY
-    let newZoom = zoom
-
-    if (delta > 0) {
-      newZoom = Math.max(0.5, zoom - 0.1) // Zoom out (min 0.5)
-    } else {
-      newZoom = Math.min(3, zoom + 0.1) // Zoom in (max 3)
-    }
-
-    if (newZoom !== zoom) {
-      canvas.setZoom(newZoom)
-      setZoom(newZoom)
-      canvas.renderAll()
-    }
-
-    e.preventDefault()
-    e.stopPropagation()
-  }
-
-  // Handle mouse down for panning
-  const handleMouseDown = (e) => {
-    if (!canvas) return
-    setPanning(true)
-    setLastPosX(e.clientX)
-    setLastPosY(e.clientY)
-  }
-
-  // Handle mouse move for panning
-  const handleMouseMove = (e) => {
-    if (!panning || !canvas) return
-
-    const vpt = canvas.viewportTransform
-    vpt[4] += e.clientX - lastPosX
-    vpt[5] += e.clientY - lastPosY
-
-    canvas.setViewportTransform(vpt)
-    canvas.renderAll()
-
-    setLastPosX(e.clientX)
-    setLastPosY(e.clientY)
-  }
-
-  // Handle mouse up to stop panning
-  const handleMouseUp = () => {
-    setPanning(false)
-  }
 
   return (
     <div className="flex flex-col lg:flex-row gap-5 items-center justify-center min-h-screen overflow-hidden relative">
       {/* Canvas Container */}
       <div
-        className={`relative border-[3px] border-blue-400 shadow-2xl rounded-lg overflow-hidden backdrop-blur-lg bg-opacity-30 ${panning ? "cursor-grabbing" : "cursor-grab"}`}
+        className={`relative border-[3px] border-blue-400 shadow-2xl rounded-lg overflow-hidden backdrop-blur-lg bg-opacity-30`}
         style={{ width: canvasSize.width, height: canvasSize.height }}
       >
         <canvas ref={canvasRef} className="w-full h-full"></canvas>
@@ -327,58 +194,6 @@ export default function DigitalSwag() {
         <label className="mt-4 block text-center text-blue-300 cursor-pointer hover:text-blue-500">
           <input type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />📸 Upload Your Image
         </label>
-
-        {/* Image Position Controls */}
-        {hasUploadedImage && false && (
-          <div className="mt-4 grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-blue-300">Left Position (%)</label>
-              <input
-                type="number"
-                value={imagePosition.leftPercent}
-                onChange={(e) => handlePositionChange(e, "leftPercent")}
-                min="0"
-                max="100"
-                step="1"
-                className="w-full p-2 border border-blue-400 rounded-md bg-black/60 text-blue-300 placeholder-gray-400 outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-blue-300">Top Position (%)</label>
-              <input
-                type="number"
-                value={imagePosition.topPercent}
-                onChange={(e) => handlePositionChange(e, "topPercent")}
-                min="0"
-                max="100"
-                step="1"
-                className="w-full p-2 border border-blue-400 rounded-md bg-black/60 text-blue-300 placeholder-gray-400 outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-blue-300">Scale X</label>
-              <input
-                type="number"
-                value={imagePosition.scaleX}
-                onChange={(e) => handlePositionChange(e, "scaleX")}
-                step="0.1"
-                min="0.1"
-                className="w-full p-2 border border-blue-400 rounded-md bg-black/60 text-blue-300 placeholder-gray-400 outline-none"
-              />
-            </div>
-            <div>
-              <label className="text-xs text-blue-300">Scale Y</label>
-              <input
-                type="number"
-                value={imagePosition.scaleY}
-                onChange={(e) => handlePositionChange(e, "scaleY")}
-                step="0.1"
-                min="0.1"
-                className="w-full p-2 border border-blue-400 rounded-md bg-black/60 text-blue-300 placeholder-gray-400 outline-none"
-              />
-            </div>
-          </div>
-        )}
 
         {/* Download Button */}
         <button

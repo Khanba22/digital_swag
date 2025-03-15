@@ -1,103 +1,156 @@
-import Image from "next/image";
+"use client";
+import { useEffect, useRef, useState } from "react";
+import * as fabric from "fabric";
+import html2canvas from "html2canvas";
 
-export default function Home() {
+export default function DigitalSwag() {
+  const canvasRef = useRef(null);
+  const [canvas, setCanvas] = useState(null);
+  const [participantName, setParticipantName] = useState("Astronaut X");
+  const [canvasSize, setCanvasSize] = useState({ width: 1080, height: 1920 });
+  const imgRef = useRef(null);
+  const bgRef = useRef(null);
+
+  useEffect(() => {
+    const updateCanvasSize = () => {
+      const screenHeight = window.innerHeight * 0.8;
+      const aspectRatio = 1080 / 1920;
+      const newWidth = screenHeight * aspectRatio;
+      setCanvasSize({ width: newWidth, height: screenHeight });
+    };
+
+    updateCanvasSize();
+    window.addEventListener("resize", updateCanvasSize);
+    return () => window.removeEventListener("resize", updateCanvasSize);
+  }, []);
+
+  useEffect(() => {
+    if (!canvasRef.current) return;
+
+    const fabricCanvas = new fabric.Canvas(canvasRef.current, {
+      width: canvasSize.width,
+      height: canvasSize.height,
+    });
+    setCanvas(fabricCanvas);
+
+    // Add neon-glow name text
+    const text = new fabric.Text(participantName, {
+      left: canvasSize.width / 2,
+      top: canvasSize.height * 0.75,
+      fontSize: canvasSize.width * 0.07,
+      fill: "#00FFFF",
+      fontFamily: "Orbitron",
+      textAlign: "center",
+      originX: "center",
+      shadow: "0 0 15px #00FFFF",
+    });
+    fabricCanvas.add(text);
+
+    return () => fabricCanvas.dispose();
+  }, [canvasSize]);
+
+  useEffect(() => {
+    if (!canvas) return;
+    const image = new Image();
+    image.src = "data/template.jpg";
+    image.onload = () => {
+      const fabricImage = new fabric.FabricImage(image);
+      fabricImage.scaleToWidth(canvasSize.width);
+      fabricImage.scaleToHeight(canvasSize.height);
+      canvas.backgroundImage = fabricImage;
+      canvas.renderAll();
+    };
+  }, [canvas, canvasSize.width, canvasSize.height]);
+
+  useEffect(() => {
+    if (canvas) {
+      const textObj = canvas.getObjects().find((obj) => obj.type === "text");
+      if (textObj) {
+        textObj.set({ text: participantName });
+        canvas.renderAll();
+      }
+    }
+  }, [canvas, participantName]);
+
+  // Handle Image Upload
+  const handleImageUpload = (e) => {
+    if (e.target.files && canvas) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.src = event.target?.result;
+        img.onload = () => {
+          const fabricImg = new fabric.FabricImage(img);
+          const scaleX = canvas.width / img.width;
+          const scaleY = canvas.height / img.height;
+          fabricImg.set({
+            scaleX: scaleX,
+            scaleY: scaleY,
+          });
+          imgRef.current = fabricImg;
+          canvas.backgroundImage = fabricImg;
+          canvas.renderAll();
+        };
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+ 
+  // Download as PNG
+  const downloadImage = () => {
+    html2canvas(canvasRef.current).then((canvasImg) => {
+      const link = document.createElement("a");
+      link.download = "digital_swag.png";
+      link.href = canvasImg.toDataURL("image/png");
+      link.click();
+    });
+  };
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <div className="flex flex-col lg:flex-row gap-5 items-center justify-center min-h-screen overflow-hidden relative">
+      {/* Canvas Container */}
+      <div
+        className="relative border-[3px] border-blue-400 shadow-2xl rounded-lg overflow-hidden backdrop-blur-lg bg-opacity-30"
+        style={{ width: canvasSize.width, height: canvasSize.height }}
+      >
+        <canvas ref={canvasRef} className="w-full h-full"></canvas>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+      {/* Control Panel */}
+      <div className="mt-6 w-full max-w-md p-6 rounded-xl shadow-xl bg-black/50 backdrop-blur-lg text-white border border-blue-500">
+        <h2 className="text-center text-2xl font-orbitron tracking-wide text-blue-400">
+          Customize Your Swag 🚀
+        </h2>
+
+        {/* Name Input */}
+        <input
+          type="text"
+          value={participantName}
+          onChange={(e) => setParticipantName(e.target.value)}
+          placeholder="Enter your name"
+          className="w-full p-3 mt-4 border border-blue-400 rounded-md bg-black/60 text-blue-300 placeholder-gray-400 outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        {/* Image Upload */}
+        <label className="mt-4 block text-center text-blue-300 cursor-pointer hover:text-blue-500">
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="hidden"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          📸 Upload Your Image
+        </label>
+
+        {/* Download Button */}
+        <button
+          onClick={downloadImage}
+          className="mt-4 w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-2 rounded-md shadow-lg hover:scale-105 transition-transform duration-200"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          Download Your Swag
+        </button>
+      </div>
     </div>
   );
 }

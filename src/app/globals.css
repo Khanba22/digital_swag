@@ -12,6 +12,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
+.bg-space {
+  background: url('/data/space_bg.jpg');
+}
+
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #0a0a0a;
@@ -20,7 +24,9 @@
 }
 
 body {
-  background: var(--background);
+  background: url('/data/space_bg.jpg');
+  background-size: cover;
+  background-repeat: no-repeat;
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

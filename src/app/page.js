@@ -155,7 +155,7 @@ export default function DigitalSwag() {
           const fabricImg = new fabric.FabricImage(img);
 
           // Calculate image dimensions based on percentages
-          const imageWidthPercent = 68; // 70% of canvas width
+          const imageWidthPercent = 70; // 70% of canvas width
           const scale =
             (canvasSize.width * (imageWidthPercent / 100)) / img.width;
 

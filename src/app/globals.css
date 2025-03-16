@@ -12,9 +12,7 @@
   --font-mono: var(--font-geist-mono);
 }
 
-.bg-space {
-  background: url('/data/space_bg.jpg');
-}
+
 
 @media (prefers-color-scheme: dark) {
   :root {
@@ -24,7 +22,7 @@
 }
 
 body {
-  background: url('/data/space_bg.jpg');
+  background: url('/data/website_background.png');
   background-size: cover;
   background-repeat: no-repeat;
   color: var(--foreground);

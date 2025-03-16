@@ -27,6 +27,7 @@ export default function DigitalSwag() {
     const fabricCanvas = new fabric.Canvas(canvasRef.current, {
       backgroundColor: "#ffffff",
       width: canvasSize.width,
+      selection: false,
       height: canvasSize.height,
     });
 

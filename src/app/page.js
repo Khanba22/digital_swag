@@ -60,7 +60,7 @@ export default function DigitalSwag() {
       const fabricImg = new fabric.FabricImage(placeholderImage);
 
       // Calculate image dimensions based on percentages
-      const imageWidthPercent = 68; // 70% of canvas width
+      const imageWidthPercent = 71; // 70% of canvas width
       const scale = (canvasSize.width * (imageWidthPercent / 100)) / placeholderImage.width;
 
       // Position at center by default (50% of width, 45% of height)
